@@ -1,0 +1,130 @@
+---
+- name: Package CaptchaCheck as Docker Image & Run Container
+  hosts: localhost
+  gather_facts: false
+
+# Runbook Features: 
+#  - This Ansible playbook builds a Docker image for the CaptchaCheck Flask application
+#  - Pushes it to Docker Hub account
+#  - Runs a container from the image
+#  - Prompts user for Docker Hub credentials and Flask app file name
+# 
+# Prerequisites:
+#  - Docker installed and running on the host machine.
+#  
+# Instructions: 
+# - To run this playbook, run the following command from the 'captcha_check/ansible' directory:
+#      ansible-playbook -i inventory.ini docker_runbook.yaml --ask-become-pass --ask-vault-pass
+# -------------------------------------------------------------------------
+
+  vars_files:
+    - secrets.yaml   # load encrypted credentials like Docker Hub Personal Access Token
+ 
+  vars_prompt:
+    - name: "build_image"
+      prompt: "Do you want to build the Docker image? (yes/no)"
+      private: no
+  
+  tasks:
+    - name: Check Docker version
+      command: docker --version
+      register: docker_version
+      ignore_errors: yes  # optional, in case Docker is not installed
+
+    - name: Show Docker version
+      debug:
+        msg: "{{ docker_version.stdout }}"
+
+    - name: Ensure Dockerfile exists
+      stat: path=../Dockerfile
+      register: dockerfile_stat 
+
+    - name: Fail if Dockerfile is missing
+      fail:
+        msg: "Dockerfile not found in the current directory."
+      when: not dockerfile_stat.stat.exists 
+
+    - name: Read Dockerfile content
+      slurp:
+        src: ../Dockerfile
+      register: dockerfile_content
+
+    - name: Decode Dockerfile content
+      set_fact:
+        dockerfile_text: "{{ dockerfile_content.content | b64decode }}"
+
+    - name: Show Dockerfile nicely
+      debug:
+        msg: "{{ dockerfile_text.split('\n') }}"
+
+    - name: Docker login to Docker Hub using token
+      shell: echo "{{ docker_hub_token }}" | docker login --username "{{ docker_hub_username }}" --password-stdin
+      no_log: true
+      register: docker_login_result
+
+    - name: Debug Docker login output
+      debug:
+        msg: "{{ docker_login_result.stdout }}"
+        
+    - name: Build Docker image for CaptchaCheck with Flask app
+      command: >
+        docker build ../
+        --build-arg FLASK_APP_FILE={{ flask_app_file }}
+        -t {{ docker_hub_username }}/captcha-check-app:latest
+      register: docker_build_result     
+      when: build_image | lower == 'yes'   # <-- only build if user says yes
+
+    - name: Get Docker images 
+      command: docker images
+      register: docker_images_result
+
+    - name: Show Docker images result
+      debug:
+        msg: "{{ docker_images_result.stdout }}"
+    
+    - name: Start Docker push in background
+      shell: docker push {{ docker_hub_username }}/captcha-check-app:latest
+      async: 1800   # maximum 30 minutes
+      poll: 0
+      register: push_job
+
+    - name: Wait for Docker push to complete
+      retries: 360      # up to 30 min if delay=5
+      delay: 5
+      async_status:
+        jid: "{{ push_job.ansible_job_id }}"
+      register: push_status
+      until: push_status.finished
+      ignore_errors: yes
+
+    - name: Show Docker push status
+      debug:
+        msg: >-
+          {% if push_status.finished and push_status.rc == 0 %}
+            ✅ Docker image {{ docker_hub_username }}/captcha-check-app:latest pushed successfully!
+          {% else %}
+            ❌ Docker push did not complete or failed.
+          {% endif %}
+
+    # - name: Run Docker container in the background
+    #   shell: docker run -d -p 5000:5000 habana07/captcha-check-app:latest
+    #   register: docker_run_result
+
+    # - name: Show Docker container ID
+    #   debug:
+    #     msg: "Docker container started with ID {{ docker_run_result.stdout }}"
+
+    # - name: Show running Docker containers
+    #   command: docker ps
+    #   register: docker_ps_result
+
+    # - name: Display running Docker containers
+    #   debug:
+    #     msg: "{{ docker_ps_result.stdout }}"
+    
+    # - name: Provide access information
+    #   debug:
+    #     msg: >
+    #       You can access the CaptchaCheck application inside the docker container at http://localhost:5000
+    #       (Make sure Docker is running and the container is up)
+

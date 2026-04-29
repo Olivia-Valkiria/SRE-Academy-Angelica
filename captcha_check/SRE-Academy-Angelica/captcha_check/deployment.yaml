@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-academy-angelica
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sre-academy-angelica
+  template:
+    metadata:
+      labels:
+        app: sre-academy-angelica
+    spec:
+      containers:
+      - name: sre-academy-angelica
+        image: habana07/sre-acad-app:latest
+        ports:
+        - containerPort: 5000

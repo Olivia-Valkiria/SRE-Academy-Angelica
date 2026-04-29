@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CaptchaCheck SRE — Secure Access</title>
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+<style>
+:root {
+    --neon: #19ff00;
+    --neon-dim: #1aff0068;
+    --panel: rgba(0, 20, 0, 0.65);
+    --scanline: rgba(25, 255, 0, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 2px,
+            var(--scanline) 3px
+        ),
+        radial-gradient(circle at top, #062406 0%, #000 55%);
+    color: var(--neon);
+    font-family: "Courier New", monospace;
+    padding: 30px;
+    text-shadow: 0 0 6px rgba(25, 255, 0, 0.35);
+}
+
+/* CLASSIFIED BANNER */
+.classified-banner {
+    white-space: pre;
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    animation: pulseGlow 2.0s infinite;
+}
+
+@keyframes pulseGlow {
+    0% {
+        opacity: 1;
+        text-shadow: 0 0 2px #19ff00;
+    }
+    50% {
+        opacity: 0.35;
+        text-shadow: 0 0 12px #19ff00;
+    }
+    100% {
+        opacity: 1;
+        text-shadow: 0 0 2px #19ff00;
+    }
+}
+
+/* HEADERS */
+h1 {
+    font-size: 22px;
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-top: 0;
+}
+
+/* CONTAINER */
+.container {
+    width: 420px;
+    margin: 0 auto;
+}
+
+/* PANELS */
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--neon-dim);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    box-shadow:
+        0 0 15px rgba(25, 255, 0, 0.15),
+        inset 0 0 20px rgba(0, 0, 0, 0.85);
+    position: relative;
+}
+
+.panel::before {
+    content: "CLASSIFIED";
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: #000;
+    border: 1px solid var(--neon-dim);
+    letter-spacing: 2px;
+}
+
+/* TEXT */
+p {
+    line-height: 1.6;
+    color: #caffc2;
+}
+
+/* FLASH MESSAGES */
+.flash {
+    max-width: 300px;
+    margin: 10px auto;
+    padding: 10px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 25px;
+    gap: 10px;
+}
+
+.flash-warning {
+    background: rgba(220, 167, 8, 0.15);
+    border: 1px solid #f1af08;
+    color: #f1af08;
+    margin-bottom: 25px;
+}
+
+.flash-danger {
+    background: rgba(255, 0, 0, 0.15);
+    border: 1px solid #ff2f2f;
+    color: #ff2f2f;
+    margin-bottom: 25px;
+}
+
+.flash-success {
+    background: rgba(25, 255, 0, 0.15);
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    margin-bottom: 25px;
+}
+
+/* FORM */
+label {
+    color: #e4ffe0;
+    font-size: 14px;
+}
+
+input {
+    width: 100%;
+    padding: 7px;
+    margin-top: 6px;
+    background: #001900;
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    font-family: monospace;
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(25, 255, 0, 0.6);
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(180deg, var(--neon), #0fb800);
+    color: #001900;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+    box-shadow: 0 0 14px rgba(25, 255, 0, 0.6);
+}
+
+button:hover {
+    box-shadow: 0 0 22px rgba(25, 255, 0, 0.9);
+}
+
+/* ASCII */
+pre {
+    color: var(--neon);
+    text-align: center;
+}
+
+/* ANIMATION */
+@keyframes flicker {
+    0% { opacity: 1; }
+    45% { opacity: 0.97; }
+    50% { opacity: 0.85; }
+    55% { opacity: 0.98; }
+    100% { opacity: 1; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="classified-banner">
+███████████████████████████████████████████████████████████████
+█   C L A S S I F I E D   —   A U T H O R I Z E D   O N L Y   █
+███████████████████████████████████████████████████████████████
+</div>
+
+<h1>OPERATION SECURE VAULT — CAPTCHACHECK</h1>
+
+<div class="container">
+
+    <!-- MISSION BRIEFING -->
+    <div class="panel">
+        <h2>Spy Mission Briefing</h2>
+
+        <p><strong>Hello Agent 007,</strong></p>
+
+        <p>
+            This is your first mission. Your next task is
+            <span style="color:#ff2f2f;"><strong>CRITICAL</strong></span>.
+        </p>
+
+        <p>
+            To enter the spy network, authenticate through the secure portal and
+            complete the CAPTCHA verification. Robots are not permitted.
+            You must then solve the riddles to unlock the vault sequence.
+        </p>
+
+        <p><strong>First clue:</strong></p>
+
+        <p style="font-style: italic; margin-left: 20px;">
+            “What has keys but can't open locks?”
+        </p>
+
+        <p>
+            The vault password is hidden in the answer. One English word,
+            lowercase, no spaces. Your username has already been disclosed.
+        </p>
+    </div>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+              {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- SECURE LOGIN -->
+    <div class="panel">
+
+        <pre>
+██  S E C U R E   A C C E S S   P O R T A L  ██
+        </pre>
+
+        <p style="text-align:center; font-size:14px;">
+            [HINT: Solve the riddle and complete the challenge]
+        </p>
+
+        <form action="/login" method="POST">
+
+            <label>Agent ID</label>
+            <input type="text" name="username" required>
+
+            <br><br>
+
+            <label>Access Code</label>
+            <input type="password" name="password" required>
+
+            <div style="display:flex; justify-content:center; margin:20px 0;">
+                <div class="g-recaptcha"
+                     data-sitekey="{{ site_key }}"
+                     data-theme="dark"></div>
+            </div>
+
+            <button type="submit">ENTER VAULT</button>
+
+        </form>
+
+        <pre style="font-size:13px; margin-top:20px;">
+Unauthorized access is logged and traced
+5 failed attempts trigger security lockdown
+        </pre>
+    </div>
+
+</div>
+
+</body>
+</html>

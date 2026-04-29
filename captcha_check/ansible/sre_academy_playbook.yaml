@@ -1,0 +1,535 @@
+---
+- name: Deploy CaptchaCheck Application on Minikube, Kubernetes manifests, monitoring tools, and observability setup
+  hosts: localhost
+# This playbook automates the FULL deployment of ALL necessary SRE components studied at the IBM SRE Academy.
+
+# Remarks:
+#   - This playbook does not complete the full SRE Academy tool setup from the beginning.
+#   - This playbook assumes the initial installation steps are completed.
+#   - This playbook was tested locally on a Windows 10 machine with WSL2 Ubuntu environment. 
+#      - MacOs was not tested but should work similarly.
+#   - For full SRE Academy tool installation instructions, please refer to the link below.
+# -------------------------------------------------------------------------
+
+# Installation Guide: 
+# https://github.ibm.com/SRE-Academy/sre-academy-training/blob/main/installation.md#tool-installation-guide-for-sre-academy
+
+# -------------------------------------------------------------------------
+# Playbook features:
+#   - Detects the operating system (Linux or macOS) and installs required dependencies accordingly 
+#   - Deployemnt of Minikube (local kubernetes) with dynamic driver selection (Docker or Podman)
+#   - Deploys Kubernetes manifests for all the following SRE components:
+#
+#      METRICS & LOGGING:
+#       1. Prometheus monitoring stack. 
+#         - Prometheus is configured to scrape metrics from the CaptchaCheck application.
+#         - Prometheus runs as a pod in the 'monitoring' namespace.
+#         - Prometheus service is exposed via a NodePort service for local access.
+#         - Pre-configured Prometheus alerting rules for monitoring application health and performance.
+#       2.cAdvisor integration with Prometheus for container-level metrics collection.
+#          - cAdvisor to collect container-level metrics for Prometheus scraping and display them in Grafana dashboards
+#          - cAdvisor runs as a standalone pod, deployed via a DaemonSet to monitor all nodes. 
+#          - RBAC configuration to allow Prometheus to access cAdvisor metrics across namespaces.
+#       3. Grafana to visualize metrics from Prometheus (dashboards can be added manually in Grafana UI)
+#         - Grafana runs as a pod in the 'monitoring' namespace.
+#         - Grafana service is exposed via a NodePort service for local access.
+#         - Pre-configured Grafana data source to connect to Prometheus.
+#         - Sample Grafana dashboards for visualizing CaptchaCheck application metrics, like request rates, error rates, and latency.
+#        
+#      OBSERVABILITY & TRACES:     
+#       4. OpenTelemetry Collector for trace collection & Jaeger for trace visualization
+#         - OpenTelemetry Collector is configured to receive traces from the CaptchaCheck application and export them to Jaeger.
+#         - Jaeger runs as a pod in the 'opentelemetry' namespace.
+#         - Jaeger service is exposed via a NodePort service for local access.
+#         - Pre-configured Jaeger UI to visualize traces from the CaptchaCheck application. 
+#         - OpenTelemetry Collector is deployed with a configuration that includes receivers, processors, and exporters suitable for the CaptchaCheck application.
+#         - OpenTelemetry Collector configuration file (otel-collector-config.yaml) includes the `spanmetrics` processor.
+#           - This processor converts trace spans into Prometheus-style metrics, which are then scraped by Prometheus.
+#           - This integration allows for enhanced observability by correlating trace data with metrics in Prometheus and Grafana.
+
+#      APPLICATION DEPLOYMENT:
+#       5. CaptchaCheck web application deployment and service exposure.
+#         - Google reCAPTCHA integrated login page to demonstrate CAPTCHA functionality.
+#         - To integrate with reCAPTCHA, domain had to be set to "localhost" in the Google reCAPTCHA admin console.
+#         - Keys were generated for "localhost" domain and added to the application code.  
+#         - The CaptchaCheck application is deployed in the 'application' namespace.
+#         - The application service is exposed via a NodePort service for local access.
+#         - The application is instrumented with OpenTelemetry SDK to send traces to the OpenTelemetry Collector.
+#         - The application exposes Prometheus metrics endpoint for scraping.
+#      
+#       JOB TO GENERATE TRAFFIC & METRICS:
+#       6. A CronJob that calls the /login endpoint of the CaptchaCheck application every minute to generate traffic and metrics for monitoring and observability demonstration. 
+#
+#  At the end of the playbook execution, it provides URLs to access, reducing toil:
+#    -  Docker Hub registry for CaptchaCheck application image`
+#    -  Minikube dashboard to monitor cluster resources
+#    -  Prometheus UI
+#    -  Grafana UI
+#    -  Jaeger UI 
+#    -  CaptchaCheck Web application  
+#
+# -------------------------------------------------------------------------
+# Instructions: 
+# To run this playbook, run the following command from the 'captcha_check/ansible' directoryey:
+#
+#      ansible-playbook -i inventory.ini sre_academy_playbook.yaml --ask-become-pass
+# -------------------------------------------------------------------------
+
+  vars: 
+    minikube_dashboard_url_file: /tmp/minikube_dashboard_url.txt
+    prometheus_dashboard_url_file: /tmp/prometheus_dashboard_url.txt
+    grafana_dashboard_url_file: /tmp/grafana_dashboard_url.txt
+    jaeger_url_file: /tmp/jaeger_url.txt
+    captcha_check_service_url_file: /tmp/captcha-check-service_url.txt
+    dockerhub_url: "https://hub.docker.com/repository/docker/habana07/captcha-check-app/general"
+
+  tasks:
+  # ---------------------------------------
+  # 1. Install dependencies based on OS type
+  # ---------------------------------------
+    - name: Install dependencies on Debian/Ubuntu
+      apt:
+        name:
+          - curl
+          - apt-transport-https
+          - ca-certificates
+          - software-properties-common
+          - conntrack
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install dependencies on macOS
+      homebrew:
+        name:
+          - curl
+        state: present
+      when: ansible_os_family == "Darwin"
+
+  # ---------------------------------------
+  # 2. Detect docker OR podman driver, set the driver accordingly
+  # ---------------------------------------
+
+    - name: Detect Docker
+      shell: which docker
+      register: docker_check
+      ignore_errors: true
+
+    - name: Detect Podman
+      shell: which podman
+      register: podman_check
+      ignore_errors: true
+
+    - name: Determine driver
+      set_fact:
+        minikube_driver: >-
+          {% if docker_check.rc == 0 %}
+            docker
+          {% elif podman_check.rc == 0 %}
+            podman
+          {% else %}
+            none
+          {% endif %}
+
+    - name: Show selected driver
+      debug:
+        msg: "Driver is: {{ minikube_driver | trim}}"
+
+    - name: Fail if no supported driver is installed
+      fail:
+        msg: "Neither Docker nor Podman is installed on this machine. Please install one of them to proceed. Follow the installation guide: https://github.ibm.com/SRE-Academy/sre-academy-training/blob/main/installation.md#tool-installation-guide-for-sre-academy "
+      when: minikube_driver == "none"
+
+  # ---------------------------------------
+  # 3. Start Kubernetes Minikube with detected driver
+  # ---------------------------------------
+    - name: Confirm if Minikube is already installed
+      shell: which minikube
+      register: minikube_status
+      ignore_errors: yes
+
+    - name: Fail if Minikube is not installed
+      fail:
+        msg: "Minikube is not installed on this machine. Please install Minikube to proceed. Follow the installation guide: https://github.ibm.com/SRE-Academy/sre-academy-training/blob/main/installation.md#tool-installation-guide-for-sre-academy "
+      when: minikube_status.rc != 0
+    
+    - name: Stop Minikube if already running (to restart with new driver)
+      shell: minikube stop
+      ignore_errors: yes
+    
+    - name: Starting Minikube with detected driver
+      shell: minikube start --driver={{ minikube_driver | trim}}
+      environment:
+        MINIKUBE_HOME: "{{ lookup('env','HOME') }}"
+
+    - name: Confirm Minikube started successfully
+      debug:
+        msg: "Minikube service started successfully with driver: {{ minikube_driver | trim}}" 
+
+# ---------------------------------------
+# 4. Get Minikube Dashboard URL
+# ---------------------------------------
+
+    - name: Remove old Minikube dashboard URL file
+      file:
+        path: "{{ minikube_dashboard_url_file }}"
+        state: absent
+
+    - name: Start Minikube dashboard in background with URL output
+      shell: |
+        nohup sh -c 'minikube dashboard --url > {{ minikube_dashboard_url_file }} 2>&1' &
+      async: 300
+      poll: 0
+
+    - name: Extract Minikube dashboard URL 
+      retries: 60
+      delay: 5
+      shell: |
+        grep -Eo "http://127\.0\.0\.1:[0-9]+[^[:space:]]*" "{{ minikube_dashboard_url_file }}" \
+        | sed -E 's/(namespace=)[^&]+/\1_all/'
+      register: minikube_dashboard_url
+      until: minikube_dashboard_url.stdout != ""
+      ignore_errors: yes
+
+    - name: Show Minikube dashboard URL (Available to track changes in deployment status as it happens)
+      debug:
+        msg: "Minikube deployment status dashboard: {{ minikube_dashboard_url.stdout }}" 
+
+    - name: Display error if unable to get Minikube dashboard URL
+      debug:
+          msg: "Unable to display URL, please run the command [minikube dashboard] as a workaround."
+      when: minikube_dashboard_url.failed or minikube_dashboard_url.stdout == ""
+          
+# ---------------------------------------
+# Deployment of Kubernetes manifests in Minikube for:
+#  - CaptchaCheck Application deployment and service exposure
+#  - OpenTelemetry Collector deployment and service to collect traces, metrics and logs   
+#     - cAdvisor deployment to collect container metrics (sensor) for Prometheus scraping
+#     - Prometheus to scrape metrics from OTel Collector and cAdvisor to query container metrics and visualize them in Grafana
+#         - Grant Prometheus access via RBAC to cAdvisor metrics across namespaces
+#     - Jaeger to store traces collected by OTel Collector and visualize them 
+#   - Grafana deployment and service to visualize metrics from all monitoring stack
+# ---------------------------------------
+
+   #--------------------------------
+   # Create namespaces for application, monitoring, and opentelemetry
+   # --------------------------------
+    - name: Ask for confirmation before deleting existing namespaces
+      pause:
+        prompt: "Are you sure you want to perform this critical action? (yes/no)"
+      register: confirm_action
+      run_once: true # Ensures prompt only happens once
+
+    - name: Delete existing namespaces if confirmed
+      shell: |
+        kubectl delete namespace application || true
+        kubectl delete namespace monitoring || true
+        kubectl delete namespace opentelemetry || true
+      ignore_errors: yes
+      when: confirm_action.user_input | lower == 'yes'
+    
+    - name: Create 'application' namespace
+      shell: kubectl create namespace application
+      ignore_errors: yes
+
+    - name: Create 'opentelemetry' namespace
+      shell: kubectl create namespace opentelemetry
+      ignore_errors: yes
+
+    - name: Create 'monitoring' namespace
+      shell: kubectl create namespace monitoring
+      ignore_errors: yes
+
+    - name: Make a pause to allow namespaces to be created
+      pause:
+       seconds: 15
+
+    - name: Verify namespaces created
+      shell: kubectl get namespaces
+      register: namespace_status
+
+    - name: Show namespaces status
+      debug:
+        var: namespace_status.stdout_lines 
+
+    # -------------------------------
+    # Kubernetes Deployment and Service initiation for CaptchaCheck Application
+    # Initialize the CaptchaCheck application deployment and service exposure and get the service URL to access the web UI
+    # --------------------------------
+    
+    - name: Remove old CaptchaCheck UI URL file
+      file:
+        path: "{{ captcha_check_service_url_file }}"
+        state: absent
+
+    - name: Apply Kubernetes deployment for CaptchaCheck application
+      shell: kubectl apply -f ../manifests/captcha_check_deployment.yaml
+      register: app_deploy
+      changed_when: app_deploy.rc != 0
+
+    - name: Wait for CaptchaCheck application pods to be ready
+      command: >
+        kubectl wait
+        --namespace application
+        --for=condition=ready pod
+        --selector=app=captcha-check-angelica
+        --timeout=180s
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Verify that the CaptchaCheck application pod is running
+      shell: kubectl get pods -n application  
+      register: app_pod_status
+    
+    - name: Show CaptchaCheck application pod status
+      debug:
+        var: app_pod_status.stdout_lines
+    
+    - name: Apply Kubernetes service for CaptchaCheck application
+      shell: kubectl apply -f ../manifests/captcha_check_service.yaml
+
+    - name: Start the Kubernetes service in background for CaptchaCheck application with URL output
+      shell: |
+        nohup sh -c 'minikube service captcha-check-service -n application --url > {{ captcha_check_service_url_file }} 2>&1' &  
+      async: 300
+      poll: 0
+
+    - name: Get kubernetes service details for CaptchaCheck application
+      shell: kubectl get service captcha-check-service -n application
+      register: service_details
+
+    - name: Display CaptchaCheck application service details
+      debug:
+        var: service_details.stdout_lines
+
+    - name: Extract CaptchaCheck Web Application UI URL
+      retries: 60
+      delay: 5
+      shell: grep -Eo "http://127\.0\.0\.1:[0-9]+" "{{ captcha_check_service_url_file }}"
+      register: captcha_check_url
+      until: captcha_check_url.stdout != ""
+      ignore_errors: yes
+
+    - name: Display error if unable to get Kubernetes service URL
+      debug:
+        msg: |
+          Unable to retrieve the Kubernetes service URL within the timeout.
+          Please run the following command manually as a workaround:
+          minikube service captcha-check-service --url    
+      when: captcha_check_url.failed or captcha_check_url.stdout == ""
+
+
+    # -------------------------------
+    # Deploy cAdvisor using the provided YAML manifest. 
+    # - This will create a DaemonSet that runs cAdvisor on each node in the cluster
+    # -------------------------------
+
+    - name: Apply cAdvisor configuration (DaemonSet to monitor container metrics on each node)
+      command: kubectl apply -f ../manifests/cAdvisor.yaml
+
+    - name: Verify that the cAdvisor pod is running ('monitoring' namespace) 
+      shell: kubectl get pods -n monitoring
+      register: cAdvisor_status 
+
+    - name: Show cAdvisor pod status (monitoring namespace)
+      debug:
+        var: cAdvisor_status.stdout_lines
+
+    # -------------------------------
+    # Deploy the OpenTelemetry Collector (to collect traces, metrics, and logs) from all monitoring components
+    # -------------------------------
+
+    - name: Apply OpenTelemetry Collector configuration
+      shell: kubectl apply -f ../manifests/otel_collector.yaml
+      register: otel_collector_status
+
+    - name: Wait for OpenTelemetry Collector pods to be ready
+      command: >
+        kubectl wait
+        --namespace opentelemetry
+        --for=condition=ready pod
+        --selector=app=otel-collector
+        --timeout=180s
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Check pod status for OpenTelemetry namespace
+      shell: kubectl get pods -n opentelemetry
+      register: otel_collector_pod_status
+
+    - name: Show OpenTelemetry pod status
+      debug:
+        var: otel_collector_pod_status.stdout_lines
+    
+    # ---------------------------------------
+    # Deploy Jaeger for trace visualization 
+    # ---------------------------------------
+
+    - name: Remove old Jaeger UI URL file
+      file:
+        path: "{{ jaeger_url_file }}"
+        state: absent
+
+    - name: Apply Jaeger configuration
+      shell: kubectl apply -f ../manifests/jaeger.yaml
+      register: jaeger_status
+
+    - name: Get Jaeger UI URL from Minikube (accessible at the end)
+      shell: |
+        nohup sh -c 'minikube service jaeger-service-ui -n opentelemetry --url > {{ jaeger_url_file }} 2>&1' &
+      async: 300
+      poll: 0
+      ignore_errors: yes
+
+    - name: Extract Jaeger UI URL (accessible at the end)
+      retries: 60
+      delay: 5
+      shell: grep -Eo "http://127\.0\.0\.1:[0-9]+" "{{ jaeger_url_file }}"
+      register: jaeger_url
+      until: jaeger_url.stdout != ""
+      ignore_errors: yes
+
+    # - name: Extract Jaeger UI URL
+    #   shell: |
+    #     minikube service jaeger-service-ui -n opentelemetry --url 2>&1 \
+    #     | grep -Eo 'http://(127\.0\.0\.1|localhost|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):[0-9]+'
+    #   register: jaeger_url
+    #   retries: 60
+    #   delay: 5
+    #   until: jaeger_url.stdout != ""
+    #   ignore_errors: yes
+
+    - name: Display error if unable to get Jaeger URL
+      debug:
+        msg: "Unable to retrieve the Jaeger service URL within the timeout. Please run: minikube service jaeger-service-ui -n opentelemetry --url"
+      when: jaeger_url is not defined or jaeger_url.stdout == ""
+
+
+    # -------------------------------
+    # Prometheus Deployment and Service initiation (with CaptchaCheck app metrics)
+    # -------------------------------
+
+    - name: Remove old Prometheus dashboard URL file
+      file:
+        path: "{{ prometheus_dashboard_url_file }}"
+        state: absent
+
+    - name: Apply Prometheus configuration & monitoring stack in Kubernetes (Minikube)
+      command: kubectl apply -f ../manifests/prometheus_deployment.yaml
+
+    - name: Wait for Prometheus pods and service to be ready
+      command: >
+        kubectl wait
+        --namespace monitoring
+        --for=condition=ready pod
+        --selector=app=prometheus
+        --timeout=180s
+      register: prometheus_wait
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Check Monitoring (namespace) pod status and confirm Prometheus is running  
+      shell: kubectl get pods -n monitoring
+      register: prometheus_status
+
+    - name: Show Prometheus pod status (monitoring namespace)
+      debug:
+        var: prometheus_status.stdout_lines
+
+    - name: Get Prometheus service URL from Minikube
+      shell: |  
+        nohup sh -c 'minikube service prometheus-service -n monitoring --url > {{ prometheus_dashboard_url_file }} 2>&1' &  
+      async: 300
+      poll: 0
+      ignore_errors: yes
+
+    - name: Extracting Prometheus UI URL (accessible at the end)
+      retries: 60
+      delay: 5
+      shell: grep -Eo "http://127\.0\.0\.1:[0-9]+" "{{ prometheus_dashboard_url_file }}"
+      register: prometheus_url
+      until: prometheus_url.stdout != ""
+      ignore_errors: yes
+
+    - name: Display error if unable to get Prometheus URL
+      debug:  
+        msg: "Unable to retrieve the Prometheus service URL within the timeout. Please run the command [minikube service prometheus-service -n monitoring --url] as a workaround."
+      when: prometheus_url.failed or prometheus_url.stdout == ""
+      ignore_errors: yes
+    
+    # -------------------------------
+    # Grafana Deployment and Service initiation for monitoring (with Prometheus) and observability dashboards
+    # -------------------------------
+    
+    - name: Remove old Grafana dashboard URL file
+      file:
+        path: "{{ grafana_dashboard_url_file }}"
+        state: absent
+    
+    - name: Apply Grafana configuration
+      command: kubectl apply -f ../manifests/grafana.yaml
+    
+    - name: Wait for Grafana pods and service to be ready
+      command: >
+        kubectl wait
+        --namespace monitoring
+        --for=condition=ready pod
+        --selector=app=grafana
+        --timeout=180s
+      register: grafana_wait
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Get Grafana service URL from Minikube
+      shell: |  
+        nohup sh -c 'minikube service grafana-service -n monitoring --url > {{ grafana_dashboard_url_file }} 2>&1' &  
+      async: 300
+      poll: 0
+      ignore_errors: yes
+
+    - name: Extracting Grafana UI URL (accessible at the end)
+      retries: 60
+      delay: 5
+      shell: grep -Eo "http://127\.0\.0\.1:[0-9]+" "{{ grafana_dashboard_url_file }}"
+      register: grafana_url
+      until: grafana_url.stdout != ""
+      ignore_errors: yes
+
+    - name: Display error if unable to get Grafana URL
+      debug:  
+        msg: "Unable to retrieve the Grafana service URL within the timeout. Please run the command [minikube service grafana-service -n monitoring --url] as a workaround."
+      when: grafana_url.failed or grafana_url.stdout == ""
+
+
+# ---------------------------------------
+# Print all done message and links to access resources
+# ---------------------------------------
+
+    - name: Get pod status in all namespaces for verification
+      shell: kubectl get pods --all-namespaces
+      register: all_pods_status
+
+    - name: Print all pods status
+      debug:    
+        var: all_pods_status.stdout_lines  
+
+    - name: Get services status for verification
+      shell: kubectl get services --all-namespaces
+      register: all_services_status
+
+    - name: Print all services status
+      debug:    
+        var: all_services_status.stdout_lines
+
+    - name: Print access URLs for all deployed resources
+      debug:
+        msg: 
+          - "All deployment steps are completed. Preparing access URLs below..."
+          - "Ctrl + click the URLs to open them in your browser."
+          - "---------------------------------------------------------------------------"
+          -  "1. DockerHub Registry: {{ dockerhub_url }}"
+          -  "2. Minikube Dashboard: {{ minikube_dashboard_url.stdout | default('Unavailable') }}"
+          -  "3. Prometheus UI: {{ prometheus_url.stdout | default('Unavailable') }}"
+          -  "4. Grafana UI: {{ grafana_url.stdout | default('Unavailable') }}"
+          -  "5. Jaeger UI: {{ jaeger_url.stdout | default('Unavailable') }}"
+          -  "6. CaptchaCheck Web Application: {{ captcha_check_url.stdout | default('Unavailable') }}"
+          - "---------------------------------------------------------------------------"

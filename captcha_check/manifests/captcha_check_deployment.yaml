@@ -1,0 +1,73 @@
+# ===============================
+# CaptchaCheck Kubernetes Deployment
+# Description: Deploys the CaptchaCheck application in the 'application' namespace.
+# ===============================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: captcha-check-angelica
+  namespace: application
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: captcha-check-angelica
+  template:
+    metadata:
+      labels:
+        app: captcha-check-angelica
+    spec:
+      containers:
+      - name: captcha-check-angelica
+        image: habana07/captcha-check-app:latest
+        command:
+          - flask
+        args:
+          - run
+          - --host=0.0.0.0
+          - --port=5000
+        ports:
+          - containerPort: 5000
+        env:
+          - name: OTEL_RESOURCE_ATTRIBUTES
+            value: "service.name=captcha-check,service.namespace=application"
+
+# ===============================
+# CronJob to call /login endpoint every minute 
+# Description: This CronJob makes HTTP requests to the /login endpoint of the CaptchaCheck application every minute.
+# ===============================
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: login-caller
+  namespace: application
+spec:
+  schedule: "*/1 * * * *"  # This is set to run every  minute
+  successfulJobsHistoryLimit: 3  # Keep only the last 3 successful job executions
+  failedJobsHistoryLimit: 1      # Optional: Keep only 1 failed job execution
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: curl-container
+            image: curlimages/curl:7.85.0  # Using curl to make HTTP requests
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+                curl http://captcha-check-service.application.svc.cluster.local:5000/login
+                sleep 1;
+          restartPolicy: Never  # Correct restart policy. This ensures the job doesn't restart on failure.

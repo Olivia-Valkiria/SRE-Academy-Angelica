@@ -1,0 +1,19 @@
+# Flask web framework for building the web application
+Flask
+requests
+python-dotenv
+
+# OpenTelemetry packages for manual tracing
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-distro
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-instrumentation-flask
+opentelemetry-instrumentation-requests
+
+# Prometheus metrics
+prometheus_client
+prometheus-flask-exporter
+
+# Encryption library for password hashing
+bcrypt

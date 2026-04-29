@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-deployment
+  namespace: opentelemetry
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.62.0
+          ports:
+            - containerPort: 16686  # Jaeger UI
+            - containerPort: 4317   # OTLP gRPC port that OTel Collector will use to send traces to Jaeger
+          args:
+            - "--collector.otlp.enabled=true" # Enable OTLP receiver in Jaeger. Port is 4317 by default
+            - "--collector.otlp.grpc.host-port=:4317" # Set OTLP gRPC port
+
+
+# -------------------------------------------------------------------------
+# Service for Jaeger Deployment 
+# -----------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-service-clusterip
+  labels:
+    app: jaeger
+  namespace: opentelemetry
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc  # OTLP gRPC port that OTel Collector will use to send traces to Jaeger
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: ui  # Jaeger UI port
+      port: 16686
+      targetPort: 16686
+      protocol: TCP
+  selector:
+    app: jaeger
+    
+
+
+# -------------------------------------------------------------------------
+# Service for Jaeger UI
+# -----------------------------------------------------------------------
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-service-ui
+  namespace: opentelemetry
+  labels:
+    app: jaeger
+spec:
+  type: NodePort
+  selector:
+    app: jaeger
+  ports:
+    - name: ui
+      port: 16686
+      targetPort: 16686
+      protocol: TCP
+

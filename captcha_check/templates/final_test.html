@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Final Vault Integrity Check</title>
+
+<style>
+:root {
+    --neon: #19ff00;
+    --neon-dim: #1aff0068;
+    --panel: rgba(0, 20, 0, 0.65);
+    --scanline: rgba(25, 255, 0, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 2px,
+            var(--scanline) 3px
+        ),
+        radial-gradient(circle at top, #062406 0%, #000 55%);
+    color: var(--neon);
+    font-family: "Courier New", monospace;
+    padding: 30px;
+    text-shadow: 0 0 6px rgba(25, 255, 0, 0.35);
+}
+
+.container {
+    width: 420px;
+    margin: 0 auto;
+}
+
+/* PANEL */
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--neon-dim);
+    padding: 22px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    box-shadow:
+        0 0 15px rgba(25, 255, 0, 0.15),
+        inset 0 0 20px rgba(0, 0, 0, 0.85);
+    position: relative;
+}
+
+.panel::before {
+    content: "FINAL CLEARANCE";
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: #000;
+    border: 1px solid var(--neon-dim);
+    letter-spacing: 2px;
+}
+
+/* TEXT */
+h1 {
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+}
+
+h2 {
+    font-size: 16px;
+    margin-top: 0;
+    letter-spacing: 1px;
+}
+
+p {
+    line-height: 1.6;
+    color: #caffc2;
+}
+
+pre {
+    color: var(--neon);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    border-left: 3px solid var(--neon);
+    margin: 10px 0;
+}
+
+/* FLASH MESSAGES */
+.flash {
+    max-width: 320px;
+    margin: 10px auto;
+    padding: 10px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.flash-danger {
+    background: rgba(255, 0, 0, 0.15);
+    border: 1px solid #ff2f2f;
+    color: #ff2f2f;
+    margin-bottom: 20px;
+}
+
+/* FORM */
+label {
+    font-size: 14px;
+    color: #e4ffe0;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 6px;
+    background: #001900;
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    font-family: monospace;
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(25, 255, 0, 0.6);
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    background: linear-gradient(180deg, var(--neon), #0fb800);
+    color: #001900;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(25, 255, 0, 0.6);
+}
+
+button:hover {
+    box-shadow: 0 0 22px rgba(25, 255, 0, 0.9);
+}
+</style>
+</head>
+
+<body>
+
+<h1>VAULT INTEGRITY CHALLENGE</h1>
+
+<div class="container">
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="panel">
+
+        <h2>Final Clearance Required</h2>
+
+        <p>
+            Agent, you have passed authentication and behavioral verification.
+            One final safeguard remains.
+        </p>
+
+        <p>
+        <p ><strong>Instructions:</strong></p>
+        <p>Step 1: Choose the correct channel (GREEN, BLUE, or RED), only one channel is active</p>
+        <p>Step 2: Continue the number pattern (use even numbers)</p>
+        <p>Step 3: Decide what to do to continue  (choose 1 = Override OR 2 = Abort)</p>
+        <p>Combine your answers in order. Uppercase letters. No spaces.</p>
+        </p>
+
+        <hr style="border-color:#1aff0030;">
+
+        <p><strong>Step 1 — Signal Recognition</strong></p>
+        <pre>
+A) GREEN ▮▮▮ — Channel Established
+B) BLUE ▮▮▮  — Awaiting Handshake
+C) RED ▮▮▮   — Protocol Timeout
+        </pre>
+
+        <p><strong>Step 2 — Pattern Decryption</strong></p>
+        <pre>
+2 → 4 → 6 → 8 → ?
+        </pre>
+
+        <p><strong>Step 3 — Intent Verification</strong></p>
+        <pre>
+1) Override safeguards
+2) Abort and report anomaly
+        </pre>
+
+        <p>
+            Concatenate your answers in order.
+            Uppercase letters. No spaces.
+        </p>
+
+        <form method="POST">
+
+            <label>Final Vault Code</label>
+            <input type="text" name="final_code"
+                   placeholder="ENTER FINAL CODE"
+                   required>
+
+            <button type="submit">VERIFY INTEGRITY</button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

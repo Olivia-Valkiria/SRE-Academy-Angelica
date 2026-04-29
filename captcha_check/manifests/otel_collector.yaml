@@ -1,0 +1,201 @@
+# ============================================================
+# OpenTelemetry Collector Deployment
+# ============================================================
+
+---  
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector-deployment
+  namespace: opentelemetry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.111.0
+          args:
+            - "--config=/etc/otel-collector-config.yaml"
+
+          # ----------------------------------------------------
+          # Container ports exposed by the Collector
+          # ----------------------------------------------------
+          ports:
+            # OTLP gRPC endpoint
+            # Applications send traces, metrics, and logs here
+            - containerPort: 4317
+
+            # Prometheus exporter endpoint
+            # Prometheus scrapes metrics from the Collector here
+            - containerPort: 9464
+
+            # Collector internal telemetry / debug metrics
+            # Exposes otelcol_* metrics about the Collector itself
+            - containerPort: 8888
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otel-collector-config.yaml
+              subPath: config.yaml
+
+      volumes:
+        - name: otel-config
+          configMap:
+            name: otel-config
+
+
+# ============================================================
+# OpenTelemetry Collector Service
+# ============================================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector-service
+  namespace: opentelemetry
+  labels:
+    app: otel-collector
+spec:
+  selector:
+    app: otel-collector
+
+  ports:
+    # OTLP gRPC Service Port - Used by applications to send telemetry to the Collector
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+
+    # Prometheus metrics Service Port - Prometheus scrapes this endpoint
+    - name: prometheus
+      protocol: TCP
+      port: 9464
+      targetPort: 9464
+
+    # Collector debug / internal telemetry port - Optional scrape target for otelcol_* metrics
+    - name: debug
+      protocol: TCP
+      port: 8888
+      targetPort: 8888
+
+  type: ClusterIP   # NodePort is usually unnecessary unless scraping externally
+
+
+# ============================================================
+# OpenTelemetry Collector Configuration
+# ============================================================
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-config
+  namespace: opentelemetry
+data:
+  config.yaml: |
+    receivers:
+      # ------------------------------------------------------
+      # OTLP receiver
+      # Accepts telemetry from instrumented applications
+      # ------------------------------------------------------
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+      
+    exporters:
+      # ------------------------------------------------------
+      # Jaeger exporter (traces)
+      # ------------------------------------------------------
+      otlp/jaeger:
+        endpoint: "jaeger-service-clusterip.opentelemetry.svc.cluster.local:4317"
+        tls:
+          insecure: true
+
+      # ------------------------------------------------------
+      # Prometheus exporter
+      # Exposes metrics to be scraped by Prometheus
+      # ------------------------------------------------------
+      prometheus:
+        endpoint: "0.0.0.0:9464"
+        namespace: "otel-collector-metrics"
+
+      # ------------------------------------------------------
+      # Debug exporter (logs telemetry to stdout)
+      # ------------------------------------------------------
+      debug: {}
+
+    processors:
+      # ------------------------------------------------------
+      # Batch processor for efficiency
+      # ------------------------------------------------------
+      batch: {}
+
+    connectors:
+      # ------------------------------------------------------
+      # Span metrics connector
+      # Converts traces into RED metrics
+      # ------------------------------------------------------
+      spanmetrics:
+        namespace: span.metrics
+
+        dimensions:
+          - name: http.method
+          - name: http.status_code
+
+    service:
+      pipelines:
+        # ----------------------------------------------------
+        # Traces pipeline
+        #
+        # spanmetrics MUST be an exporter here so it can
+        # receive spans and convert them into metrics.
+        # ----------------------------------------------------
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: 
+            - otlp/jaeger
+            - debug
+            - spanmetrics
+
+        # ----------------------------------------------------
+        # Metrics pipeline
+        #
+        # Receives:
+        #   - native metrics from applications (OTLP)
+        #   - derived metrics from traces (spanmetrics)
+        # ----------------------------------------------------
+        metrics:
+          receivers: 
+            - otlp
+            - spanmetrics
+          processors: [batch]
+          exporters: 
+            - prometheus
+            - debug
+
+        # ----------------------------------------------------
+        # Logs pipeline
+        # ----------------------------------------------------
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [debug]
+
+

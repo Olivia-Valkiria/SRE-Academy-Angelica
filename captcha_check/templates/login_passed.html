@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agent Dashboard — Secure Vault Interface</title>
+
+<style>
+:root {
+    --neon: #19ff00;
+    --neon-dim: #1aff0068;
+    --bg: #020402;
+    --panel: rgba(0, 20, 0, 0.65);
+    --scanline: rgba(25, 255, 0, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 2px,
+            var(--scanline) 3px
+        ),
+        radial-gradient(circle at top, #062406 0%, #000 55%);
+    color: var(--neon);
+    font-family: "Courier New", monospace;
+    padding: 30px;
+    text-shadow: 0 0 6px rgba(25, 255, 0, 0.35);
+}
+
+/* ===================== */
+/* BOOT SEQUENCE         */
+/* ===================== */
+
+#boot {
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.line {
+    white-space: nowrap;
+    overflow: hidden;
+    width: 0;
+    max-width: 60ch;
+    display: block;
+    animation: typing 1.8s steps(60, end) forwards;
+}
+
+.ok {
+    color: #00ffcc;
+}
+
+.granted {
+    color: #00ff00;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-top: 12px;
+}
+
+/* Typing animation */
+@keyframes typing {
+    from { width: 0; }
+    to   { width: 60ch; }
+}
+
+/* Cursor */
+.cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background: #19ff00;
+    margin-left: 6px;
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* Staggered delays */
+.l1 { animation-delay: 0s; }
+.l2 { animation-delay: 2s; }
+.l3 { animation-delay: 4s; }
+.l4 { animation-delay: 6s; }
+.l5 { animation-delay: 8s; }
+.l6 {
+    animation-delay: 10s;
+    animation-duration: 1.2s;
+}
+
+/* ===================== */
+/* DASHBOARD (HIDDEN)    */
+/* ===================== */
+
+#dashboard {
+    display: none;
+}
+
+.classified-banner {
+    white-space: pre;
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+    0% { opacity: 1; text-shadow: 0 0 2px var(--neon); }
+    50% { opacity: 0.35; text-shadow: 0 0 12px var(--neon); }
+    100% { opacity: 1; text-shadow: 0 0 2px var(--neon); }
+}
+
+.header-box,
+.vault-box {
+    background: var(--panel);
+    border: 1px solid var(--neon-dim);
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow:
+        0 0 15px rgba(25, 255, 0, 0.15),
+        inset 0 0 20px rgba(0, 0, 0, 0.8);
+    position: relative;
+}
+
+.header-box::before,
+.vault-box::before {
+    content: "SECURE";
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: #000;
+    border: 1px solid var(--neon-dim);
+    letter-spacing: 2px;
+}
+
+h1, h3, h4 {
+    margin-top: 0;
+    letter-spacing: 1px;
+}
+
+h3 {
+    border-left: 3px solid var(--neon);
+    padding-left: 10px;
+    margin-top: 35px;
+}
+
+p {
+    line-height: 1.6;
+    color: #b9ffb0;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    background: linear-gradient(180deg, var(--neon), #0fb800);
+    color: #0a1701d2;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(25, 255, 0, 0.6);
+}
+
+button:hover {
+    box-shadow: 0 0 22px rgba(25, 255, 0, 0.9);
+}
+</style>
+</head>
+
+<body>
+
+<!-- BOOT SEQUENCE -->
+<div id="boot">
+    <div class="line l1">Initializing Secure Terminal...</div>
+    <div class="line l2">Loading cryptographic modules... <span class="ok">OK</span></div>
+    <div class="line l3">Establishing encrypted uplink... <span class="ok">OK</span></div>
+    <div class="line l4">Verifying agent credentials... <span class="ok">OK</span></div>
+    <div class="line l5">Decrypting vault interface...</div>
+    <div class="line l6 granted">
+        ACCESS GRANTED<span class="cursor"></span>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+<pre class="classified-banner">
+███████████████████████████████████████████
+██       🔐  T O P  S E C R E T         ██
+███████████████████████████████████████████
+</pre>
+
+<div class="header-box">
+    <h1>Agent {{ user }} — Clearance Confirmed</h1>
+    <p><strong>Status:</strong> ENCRYPTED CHANNEL ESTABLISHED ▮▮▮</p>
+    <p>Welcome, {{ user }}. Your secure vault interface is now active.</p>
+
+    <form action="{{ url_for('final_test') }}" method="POST">
+        <button type="submit">PROCEED TO FINAL CLEARANCE</button>
+    </form>
+</div>
+
+<h3>📡 Operation Log — “Vault Access Trace”</h3>
+
+<div class="vault-box">
+    <h4>Live Telemetry</h4>
+    <p id="typed-output"></p>
+</div>
+
+</div>
+
+<script>
+/* Boot delay matches final animation */
+setTimeout(() => {
+    document.getElementById("boot").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    typeText();
+}, 12000);
+
+/* Dashboard typing */
+const text = "{{ operation }}";
+let index = 0;
+
+function typeText() {
+    if (index < text.length) {
+        document.getElementById("typed-output").textContent += text.charAt(index);
+        index++;
+        setTimeout(typeText, 35);
+    }
+}
+</script>
+
+</body>
+</html>

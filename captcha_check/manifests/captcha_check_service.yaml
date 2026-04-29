@@ -1,0 +1,18 @@
+#===============================
+# CaptchaCheck Kubernetes Service Configuration
+# Description: Exposes the CaptchaCheck Python application via a NodePort service.
+#===============================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: captcha-check-service
+  namespace: application
+spec:
+  type: NodePort
+  selector:
+    app: captcha-check-angelica
+  ports:
+  - port: 5000
+    targetPort: 5000
+    nodePort: 30007 

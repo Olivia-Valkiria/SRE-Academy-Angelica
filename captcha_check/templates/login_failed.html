@@ -1,0 +1,136 @@
+<!DOCTYPE html> 
+<html lang="en"> 
+    <head> 
+        <meta charset="UTF-8"> 
+    <title>Mission Failed</title> 
+
+
+    <!-- ALERT BANNER -->
+    <div class="alert-banner">
+        <pre class="classified-banner">
+███████████████████████████████████████████████████████████████
+█           A L E R T -- M I S S I O N   F A I L E D          █
+███████████████████████████████████████████████████████████████
+         </pre>
+    </div>
+    
+</head>
+
+    <style>
+    .terminal {
+        position: relative;        /* anchor for absolute banner */
+        padding-top: 120px;        /* space for banner */
+    }
+
+    /* Banner container */
+    .alert-banner {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .classified-banner {
+        font-family: "Courier New", monospace;
+        font-size: 15px;
+        color: #ff0000;
+        text-align: center;
+        animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow { 
+        0% { 
+            opacity: 0.25; text-shadow: 0 0 2px #ff0000;  
+        } 
+        50% { 
+            opacity: 0.5; text-shadow: 0 0 12px #ff3700; 
+        } 
+        100% { 
+            opacity: 1; text-shadow: 0 0px 2px #ff3700; 
+        } 
+    }
+
+    body { 
+        margin: 0; 
+        min-height: 100vh; 
+        background-color: #020202; 
+        color: #19ff00; 
+        font-family: "Trebuchet MS", monospace; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+    } 
+    
+    .terminal { 
+        width: 600px; 
+        max-width: 75%; 
+        padding: 60px; 
+        border: 3px dotted #ff370068; 
+        border-radius: 10px; 
+        background: rgba(255,255,255,0.03);
+        box-shadow: 5px 15px 45px rgba(255, 0, 0, 0.25) ; opacity: 1.4; 
+        position: relative; 
+    } 
+
+    h1 { 
+        margin: 0 0 10px; 
+        color: #ff0000; 
+        letter-spacing: 2px; 
+        font-family: "Typewriter", monospace;
+        font-size: 28px;
+    }
+    
+    h3 { 
+        margin: 8px 0; 
+        font-weight: normal; 
+        color: #ffffff;
+    }
+
+    .footer { 
+        text-align: center; 
+        margin-top: 25px; 
+        font-size: 12px; 
+        opacity: 0.7; 
+    }
+    
+    </style>
+    
+<body>
+
+    <div class="terminal">
+
+        <!-- TERMINAL CONTENT -->
+        <div class="alert-box">
+            <h1>ACCESS DENIED</h1>
+            <br>
+
+            <h3>Unauthorized access attempts detected</h3>
+            <h3>Security countermeasures engaged</h3>
+        </div>
+
+        <div class="log-box">
+            <br>
+            <h3>📡 Operation Log — “Vault Access Trace”</h3>
+            <p>{{ operation }}</p>
+        </div>
+
+        <div class="vault-box">
+            <br>
+            <h3>🔒 Vault Access Restricted</h3>
+            <p>You have exceeded the maximum allowed authentication attempts.</p>
+            <p>Terminate session and await administrator clearance.</p>
+        </div>
+
+        <div class="footer">
+            <br>
+            <br>
+            SYSTEM STATUS: LOCKDOWN ACTIVE · TRACE LOGGED · SESSION TERMINATED
+        </div>
+
+    </div>
+
+</body>

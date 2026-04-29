@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title> Vault Codes</title>
+
+<style>
+:root {
+    --neon: #19ff00;
+    --neon-dim: #1aff0068;
+    --panel: rgba(0, 20, 0, 0.7);
+    --scanline: rgba(25, 255, 0, 0.05);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 2px,
+            var(--scanline) 3px
+        ),
+        radial-gradient(circle at top, #062406 0%, #000 55%);
+    color: var(--neon);
+    font-family: "Courier New", monospace;
+    padding: 30px;
+    text-shadow: 0 0 6px rgba(25, 255, 0, 0.35);
+}
+
+h1, h3, h4 {
+    text-align: center;
+    color: var(--neon);
+    margin-bottom: 20px;
+}
+
+.container {
+    width: 450px;
+    margin: 0 auto;
+}
+
+/* Vault Panel */
+.vault-box {
+    background: var(--panel);
+    border: 2px dashed var(--neon-dim);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow:
+        0 0 20px rgba(25, 255, 0, 0.2),
+        inset 0 0 25px rgba(0,0,0,0.6);
+}
+
+.vault-box ul {
+    list-style-type: square;
+    padding-left: 25px;
+    color: var(--neon);
+    font-size: 15px;
+}
+
+.vault-box li {
+    margin: 8px 0;
+}
+
+/* Flash Messages */
+.flash {
+    max-width: 350px;
+    margin: 10px auto;
+    padding: 10px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 5px;
+}
+
+.flash-success {
+    background: rgba(131, 234, 117, 0.15);
+    border: 1px solid var(--neon);
+    color: var(--neon);
+}
+
+.flash-danger {
+    background: rgba(255, 0, 0, 0.15);
+    border: 1px solid #ff2f2f;
+    color: #ff2f2f;
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: linear-gradient(180deg, var(--neon), #0fb800);
+    color: #001900;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(25, 255, 0, 0.6);
+}
+
+button:hover {
+    box-shadow: 0 0 22px rgba(25, 255, 0, 0.9);
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔐 SECURE VAULT ACCESS</h1>
+
+<div class="container">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">
+              {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Vault Combination Panel -->
+    <div class="vault-box">
+        <h3>🔓 Safe Lock Combination Retrieved</h3>
+        <h4>Enter these numbers in EXACT order to unlock the encrypted vault:</h4>
+
+        <ul>
+            <li><b>First number:</b> {{ first_number }}</li>
+            <li><b>Second number:</b> {{ second_number }}</li>
+            <li><b>Third number:</b> {{ third_number }}</li>
+            <li><b>Fourth number:</b> {{ fourth_number }}</li>
+        </ul>
+    </div>
+
+    <!-- Logout Button -->
+    <form action="{{ url_for('logout') }}" method="POST">
+        <button type="submit">LOGOUT</button>
+    </form>
+
+</div>
+
+</body>
+</html>
