@@ -31,7 +31,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
    - Deployemnt of Minikube (local kubernetes) with dynamic driver selection (Docker or Podman)
    - Deploys Kubernetes manifests for all the following SRE components:
 
-    ***  METRICS & LOGGING: ***
+***  METRICS & LOGGING: ***
     
         1. Prometheus monitoring stack. 
          - Prometheus is configured to scrape metrics from the CaptchaCheck application.
@@ -50,7 +50,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - Pre-configured Grafana data source to connect to Prometheus.
          - Sample Grafana dashboards for visualizing CaptchaCheck application metrics, like request rates, error rates, and latency.
         
-    *** OBSERVABILITY & TRACES: ***     
+*** OBSERVABILITY & TRACES: ***     
 
        4. OpenTelemetry Collector for trace collection & Jaeger for trace visualization
          - OpenTelemetry Collector is configured to receive traces from the CaptchaCheck application and export them to Jaeger.
@@ -62,7 +62,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
            - This processor converts trace spans into Prometheus-style metrics, which are then scraped by Prometheus.
            - This integration allows for enhanced observability by correlating trace data with metrics in Prometheus and Grafana.
 
-    *** APPLICATION DEPLOYMENT: ***
+*** APPLICATION DEPLOYMENT: ***
 
        5. CaptchaCheck web application deployment and service exposure.
          - Google reCAPTCHA integrated login page to demonstrate CAPTCHA functionality.
@@ -73,7 +73,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - The application is instrumented with OpenTelemetry SDK to send traces to the OpenTelemetry Collector.
          - The application exposes Prometheus metrics endpoint for scraping.
       
-    *** JOB TO GENERATE TRAFFIC & METRICS: ***
+*** JOB TO GENERATE TRAFFIC & METRICS: ***
 
        6. A CronJob that calls the /login endpoint of the CaptchaCheck application every minute to generate traffic and metrics for monitoring and observability demonstration. 
 
