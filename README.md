@@ -1,9 +1,11 @@
 # Project: CaptchaCheck — SRE Vault Integrity Lab
----
+
 ## IBM Site Reliability Engineer Academy, 2025 
 ## Author & Student: Angelica Salas 
+---
 
 "What has keys but can't open locks?"
+
 CaptchaCheck is a gamified, full-stack web application designed to demonstrate core Site Reliability Engineering (SRE) principles through the lens of a "Cyber-Spy" security clearance mission.
 
 The project simulates a secure agent portal where users must pass through behavioral verification (Google reCAPTCHA), cryptographic riddles, and pattern decryption to access a high-security "Safe Lock" combination.
