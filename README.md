@@ -10,19 +10,21 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
    - This playbook was tested locally on a Windows 10 machine with WSL2 Ubuntu environment. 
       - MacOs was not tested but should work similarly.
    - For full SRE Academy tool installation instructions, please refer to the link below.
+ 
  -------------------------------------------------------------------------
 
  Installation Guide: 
  https://github.ibm.com/SRE-Academy/sre-academy-training/blob/main/installation.mdtool-installation-guide-for-sre-academy
 
  -------------------------------------------------------------------------
- Playbook features:
+
+ ## Playbook features:
    - Detects the operating system (Linux or macOS) and installs required dependencies accordingly 
    - Deployemnt of Minikube (local kubernetes) with dynamic driver selection (Docker or Podman)
    - Deploys Kubernetes manifests for all the following SRE components:
 
-      METRICS & LOGGING:
-       1. Prometheus monitoring stack. 
+    # METRICS & LOGGING:
+        1. Prometheus monitoring stack. 
          - Prometheus is configured to scrape metrics from the CaptchaCheck application.
          - Prometheus runs as a pod in the 'monitoring' namespace.
          - Prometheus service is exposed via a NodePort service for local access.
@@ -37,7 +39,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - Pre-configured Grafana data source to connect to Prometheus.
          - Sample Grafana dashboards for visualizing CaptchaCheck application metrics, like request rates, error rates, and latency.
         
-      OBSERVABILITY & TRACES:     
+    # OBSERVABILITY & TRACES:     
        4. OpenTelemetry Collector for trace collection & Jaeger for trace visualization
          - OpenTelemetry Collector is configured to receive traces from the CaptchaCheck application and export them to Jaeger.
          - Jaeger runs as a pod in the 'opentelemetry' namespace.
@@ -48,7 +50,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
            - This processor converts trace spans into Prometheus-style metrics, which are then scraped by Prometheus.
            - This integration allows for enhanced observability by correlating trace data with metrics in Prometheus and Grafana.
 
-      APPLICATION DEPLOYMENT:
+    # APPLICATION DEPLOYMENT:
        5. CaptchaCheck web application deployment and service exposure.
          - Google reCAPTCHA integrated login page to demonstrate CAPTCHA functionality.
          - To integrate with reCAPTCHA, domain had to be set to "localhost" in the Google reCAPTCHA admin console.
@@ -58,7 +60,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - The application is instrumented with OpenTelemetry SDK to send traces to the OpenTelemetry Collector.
          - The application exposes Prometheus metrics endpoint for scraping.
       
-       JOB TO GENERATE TRAFFIC & METRICS:
+    # JOB TO GENERATE TRAFFIC & METRICS:
        6. A CronJob that calls the /login endpoint of the CaptchaCheck application every minute to generate traffic and metrics for monitoring and observability demonstration. 
 
   At the end of the playbook execution, it provides URLs to access, reducing toil:
@@ -71,7 +73,8 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
 
  -------------------------------------------------------------------------
  Instructions: 
- To run this playbook, run the following command from the 'captcha_check/ansible' directoryey:
+
+ To run this playbook, run the following command from the 'captcha_check/ansible' directory:
 
       ansible-playbook -i inventory.ini sre_academy_playbook.yaml --ask-become-pass
  -------------------------------------------------------------------------
