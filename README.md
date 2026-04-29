@@ -38,7 +38,16 @@ This project automates the **FULL** deployment of **ALL** necessary SRE componen
 ### Remarks:
 - This playbook does not complete the full SRE Academy tool setup from the beginning.
 - This playbook assumes the initial installation steps are completed.
-- Tested locally on **Windows 10 (WSL2)** and **macOS**.
+- This playbook was tested locally on a Windows 10 machine with WSL2 Ubuntu environment. MacOs was not tested locally.
+- For full SRE Academy tool installation instructions, please refer to the link below.
+
+-------------------------------------------------------------------------
+
+Installation Guide:
+
+https://github.ibm.com/SRE-Academy/sre-academy-training/blob/main/installation.mdtool-installation-guide-for-sre-academy
+
+-------------------------------------------------------------------------
 
 ### Features & Components:
 
@@ -48,12 +57,15 @@ This project automates the **FULL** deployment of **ALL** necessary SRE componen
 3. **Grafana:** Visualization for Prometheus metrics with pre-configured data sources.
 
 **OBSERVABILITY & TRACES:**
+
 4. **OpenTelemetry & Jaeger:** Collector configured to receive traces and export them to Jaeger for visualization.
 
 **APPLICATION DEPLOYMENT:**
+
 5. **CaptchaCheck Web App:** Deployed in the `application` namespace with Google reCAPTCHA integration.
 
 **TRAFFIC GENERATION:**
+
 6. **CronJob:** Automatically calls the `/login` endpoint every minute to generate observability data.
 
 ---
