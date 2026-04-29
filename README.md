@@ -24,15 +24,18 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
    - Deploys Kubernetes manifests for all the following SRE components:
 
     # METRICS & LOGGING:
+    
         1. Prometheus monitoring stack. 
          - Prometheus is configured to scrape metrics from the CaptchaCheck application.
          - Prometheus runs as a pod in the 'monitoring' namespace.
          - Prometheus service is exposed via a NodePort service for local access.
          - Pre-configured Prometheus alerting rules for monitoring application health and performance.
+
        2.cAdvisor integration with Prometheus for container-level metrics collection.
           - cAdvisor to collect container-level metrics for Prometheus scraping and display them in Grafana dashboards
           - cAdvisor runs as a standalone pod, deployed via a DaemonSet to monitor all nodes. 
           - RBAC configuration to allow Prometheus to access cAdvisor metrics across namespaces.
+
        3. Grafana to visualize metrics from Prometheus (dashboards can be added manually in Grafana UI)
          - Grafana runs as a pod in the 'monitoring' namespace.
          - Grafana service is exposed via a NodePort service for local access.
@@ -40,6 +43,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - Sample Grafana dashboards for visualizing CaptchaCheck application metrics, like request rates, error rates, and latency.
         
     # OBSERVABILITY & TRACES:     
+
        4. OpenTelemetry Collector for trace collection & Jaeger for trace visualization
          - OpenTelemetry Collector is configured to receive traces from the CaptchaCheck application and export them to Jaeger.
          - Jaeger runs as a pod in the 'opentelemetry' namespace.
@@ -51,6 +55,7 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
            - This integration allows for enhanced observability by correlating trace data with metrics in Prometheus and Grafana.
 
     # APPLICATION DEPLOYMENT:
+
        5. CaptchaCheck web application deployment and service exposure.
          - Google reCAPTCHA integrated login page to demonstrate CAPTCHA functionality.
          - To integrate with reCAPTCHA, domain had to be set to "localhost" in the Google reCAPTCHA admin console.
@@ -61,9 +66,10 @@ This playbook automates the FULL deployment of ALL necessary SRE components stud
          - The application exposes Prometheus metrics endpoint for scraping.
       
     # JOB TO GENERATE TRAFFIC & METRICS:
+    
        6. A CronJob that calls the /login endpoint of the CaptchaCheck application every minute to generate traffic and metrics for monitoring and observability demonstration. 
 
-  At the end of the playbook execution, it provides URLs to access, reducing toil:
+At the end of the playbook execution, it provides URLs to access, reducing toil:
     -  Docker Hub registry for CaptchaCheck application image`
     -  Minikube dashboard to monitor cluster resources
     -  Prometheus UI
