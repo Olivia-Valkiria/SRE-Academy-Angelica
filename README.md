@@ -1,8 +1,7 @@
 # Project: CaptchaCheck — SRE Vault Integrity Lab
-
-## 
-IBM Site Reliability Engineer Academy, 2025 
-Author & Student: Angelica Salas 
+ 
+**IBM Site Reliability Engineer Academy, 2025**  
+**Author & Student: Angelica Salas** 
 ##
 
 "What has keys but can't open locks?"
